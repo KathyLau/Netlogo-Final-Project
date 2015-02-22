@@ -1,0 +1,829 @@
+turtles-own
+[
+  xvel 
+  yvel
+  ]
+
+
+globals
+[
+  gravity 
+  initial-xvel 
+  initial-yvel 
+  level 
+  cont 
+  ]
+
+breed [schools school]              ;the breed schools is for the animation's background
+breed [platforms platform]          ;aka windows, BOB needs platforms to jump and accomplish his mission
+breed [blkturtles blkturtle]        ;aka game-over turtles, their job is to hide and when BOB dies they will show shape "game-over"
+breed [winturtles winturtle]        ;very similar to game-over turtles, when BOB wins the world will display "you-win"
+breed [rockets rocket]              ;notice the rockets on platforms, they are power-ups to ease BOB's mission
+breed [bombs bomb]                  ;is BOB lands on a bomb, he will die
+breed [bullets bullet]              ;BOB can shoot with the shoot button and rid his path of bombs
+breed [coins coin]                  ;coins are randomly distributed in the world to give BOB points
+breed [lights light]                ;this is a part of the animation, notice a light-bulb pops up when BOB has an idea
+breed [ideas idea]                  ;this turtle has the job of diplaying the shape that is a dialogue box
+breed [locked lock]                 ;this breed's job is similar to the breed ideas
+breed [doodles doodle ]             ;aka BOB, this breed is self-explanatory
+breed [blue_fire blue_f]            ;blue flame powerup - it allows the doodle to teleport randomly 4 times in an extremely cool shape!
+
+doodles-own [shoot_time frame]
+
+;/////////////////////////////////////////////////////;
+;///////////////SETUP PROCEDURES//////////////////////;
+;/////////////////////////////////////////////////////;
+ 
+; Game Menu-- Features play button, doodle shapes, and powerups
+to Running_Late
+  ca
+ import-pcolors "view.png"
+ ask patches at-points 
+ [ 
+   [-13 -5] [-12 -5] [-11 -5] [-10 -5] [-9 -5][-8 -5][-7 -5][-6 -5][-5 -5] 
+   [-4 -5][-1 -5][-3 -5][-2 -5][0 -5][1 -5] [-14 -6] [-14 -7][-14 -8][-14 -9]
+   [-14 -10][-14 -11][-14 -12] [-14 -13] [2 -6] [2 -7][2 -8][2 -9][2 -10][2 -11]
+   [2 -12] [2 -13][-13 -14] [-12 -14] [-11 -14] [-10 -14] [-9 -14] [-8 -14] [-7 -14] 
+   [-6 -14] [-5 -14] [-4 -14] [-3 -14][-2 -14][-1 -14]   [0 -14] [1 -14]
+   [-12 -7] [-12 -8][-12 -9][-12 -10][-12 -11] [-11 -7] [-11 -9] [-10 -7] [-10 -8] 
+   [-10 -9] [-8 -6] [-8 -7] [-8 -8] [-8 -9] [-6 -7] [-6 -8] [-6 -9]
+   [-4 -7] [-4 -8] [-4 -9] [-4 -10] [-5 -7] [-5 -9] [-2 -7] [-2 -8] [-2 -9] 
+   [-1 -9] [0 -7][0 -8] [0 -9][0 -10][0 -11] [0 -12] [-7 -12][-6 -12][-5 -12][-4 -12]
+   [-3 -12][-2 -12][-1 -12]
+   ]
+ [
+   set pcolor violet
+   ]
+   ask patch 11 0 
+   [
+     sprout-doodles 1 
+     [
+       doodle-setup setxy 11 0 set size 8
+       ] 
+     sprout-platforms 1 
+     [
+       platform-setup setxy 11 -6 set size 5
+       ]
+     sprout-doodles 1 
+     [
+   doodle-setup setxy 17 18 set size 8 set shape "bob2"
+   ]
+ sprout-rockets 1 
+ [
+   rocket-setup setxy 5 -8 set size 5
+   ]
+ sprout-bombs 1 
+ [
+   bomb-setup setxy 3 16 set size 6
+   ]
+ sprout-coins 5 
+ [
+   coin-setup setxy random-xcor random-ycor set size 5
+   ]
+ ]
+   ask patches 
+   [
+     if pycor <= -15 
+     [
+       set pcolor white
+       ]
+     ]
+ask patches 
+[
+  if pcolor = red  
+  [
+      set pcolor blue
+      wait .008 
+      set pcolor yellow
+      wait .008 
+      set pcolor violet
+      wait .008 
+      set pcolor green
+      wait .008 
+      set pcolor red
+      ]
+    ]
+end 
+
+; Sets the border boundary values of the start button
+to-report in-box [x1 x2 y1 y2]
+  report mouse-xcor >= x1 and mouse-xcor <= x2 and mouse-ycor >= y1 and mouse-ycor <= y2
+end
+  
+; Highlights start button when mouse is hovered over it. Starts the game/animation when mouse is clicked!
+to start_game
+  if mouse-inside? and in-box -14 2 -14 -5 
+  [
+    ask patches with [pcolor = violet] 
+    [
+      set pcolor blue
+      ]
+    ] 
+  if mouse-down? and in-box -14 2 -14 -5  
+  [  
+   ca
+  ifelse user-yes-or-no? "Watch Animation?"   
+  [ 
+    setup-animation
+    go-animation
+    wait 1
+    setupi
+    ] 
+  [ 
+    setupi
+    ]
+  ]
+end
+
+; Sets up the doodle and shape at the animation
+to setup-animation    
+  ca
+   create-doodles 1 
+   [
+     setxy -13 -7
+    set heading -90            
+    set frame 1
+    set size 17
+    set shape "person-1"
+    set color gray
+    ]
+  create-schools 1 
+  [ 
+   setxy 0 0
+    set shape "school"
+    set color gray
+    set size 41
+  ]
+
+end
+
+;<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>;
+;<<<<<<<<<<<<< ANIMATION PROCEDURES>>>>>>>>>>>>>>>;
+;<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>;
+
+;activates the animation by programming BOB to walk
+to go-animation
+ move-person
+ if cont = true 
+ [
+   create-locked 1 [                ;breed locks is used     
+     setxy -2 10
+     set shape "locked?"
+     set color gray
+     set size 20
+     set heading 0  
+     wait 0.4 
+     ht 
+     wait 0.4
+     st 
+     wait 
+     1.2 
+     ht 
+     ]
+   wait 1
+    create-lights 1 [               ;breed lights is used 
+      setxy 4 10
+      set shape "light-bulb"
+      set color gray
+      set size 20
+      set heading 0
+      wait .5 
+      ht
+      ]
+    create-ideas 1 [                ;breed ideas is used 
+      setxy -2 10 
+      set shape "idea"
+      set color gray
+      set size 20
+      set heading 0
+      ] 
+    ]  
+end
+
+;this is the most essential part to making BOB look like he is seemingly walking
+to move-person
+  ask doodles 
+  [ 
+    repeat  8                ;the procedure is repeated 8 times with BOB a new 
+    [
+    set shape "person-1"
+    forward -1 / 4           
+    wait .074   
+    set shape "person-2"
+    forward -1 / 4
+    wait 0.074
+    set shape "person-3"
+    forward -1 / 4
+    wait 0.074
+    set shape "person-4"
+    forward -1 / 4
+    wait 0.074
+    set shape "person-5"
+     forward -1 / 4
+    wait 0.074  
+    set shape "person-6"
+     forward -1 / 4
+    wait 0.074
+    set shape "person-7"
+     forward -1 / 4
+    wait 0.074          
+    set shape "person-8"
+     forward -1 / 4
+    wait 0.074
+    set shape "person-9"
+    ] 
+    set cont true 
+    ] 
+end
+
+;;;;;;;;;;;;;;;;;;; MORE ;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;;;;;;;;;;;;; SETUP PROCEDURES ;;;;;;;;;;;;;;;;;;;
+
+; Asks if the user wants to watch the animation ; if not, the game will automatically setup
+to setup
+  ca
+  ifelse user-yes-or-no? "Watch Animation?"   
+  [ 
+    setup-animation
+    go-animation
+    wait 1.2
+    setupi
+    ] 
+  [ 
+    setupi
+    ]
+end
+
+;this setup is shown as the settings the player sees when he is playing the game
+to setupi
+  ca
+  import-pcolors "grid2.png"
+  set gravity 0.155
+  set initial-xvel 0
+  set initial-yvel 1.35
+  create-doodles 1 [doodle-setup]          ;BOB is born!
+  create-platforms 20 [platform-setup]     ;breeds platforms, aka windows 
+  create-platforms 1 [start-setup]         ;this platform is what BOB is standing on when he is born!
+  create-blkturtles 1 [setxy 0 0 ht]       ;is hidden and asked to show when BOB dies
+  create-winturtles 1 [setxy 0 0 ht]       ;is hidden and asked to show when BOB wins
+  set score 0                              ;initial score is 0, if score is 75 or above, BOB will win
+end
+
+;windows are set at random locations with a specific shape, size, color, and heading
+to platform-setup 
+   setxy random-xcor random-ycor
+    set shape "window"
+    set size 4
+    set color brown
+    set heading 0
+end 
+
+;this is a specific window just for BOB
+;he stands on this window when he is born!
+to start-setup
+    setxy 0 -17
+    set shape "window"
+    set size 4
+    set color brown
+    set heading 0
+end 
+
+;;;;;;;;;;;;;;;;; HELPER FXNS + GO PROCEDURES ;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;BOB is given a specific heading, size, shape, position, and color
+to doodle-setup
+  set heading 0
+  set size 2.5
+  setxy 0 -16
+  set xvel initial-xvel
+  set yvel initial-yvel
+  if character = "bob-v.1" [set shape "bob-v.1"]
+  if character = "bob-v.2" [set shape "bob-v.2"]
+  set size 4.5
+  set color gray
+  set shoot_time 50
+end
+
+;BOB is asked to jump with the help of the function djump
+to animate
+  if breed = doodles 
+  [
+    djump 
+    ]
+end
+
+;This is the gravity function that makes BOB jump. It resets its gravity to 0 every time it lands on a platform to make its jumps continuous.
+to djump
+  set yvel yvel - gravity
+  lose
+  set ycor ycor + yvel
+  set xcor xcor + xvel
+  if any? platforms-here
+  [
+    set gravity 0 
+    ]
+  
+  ; Reset Gravity
+  if (gravity = 0)
+  [ 
+    set xvel initial-xvel
+    set yvel initial-yvel
+    set gravity 0.155 
+    ]
+  wait 0.1
+end
+
+;if BOB plunges to the bottom of the world, he will die and game-over will pop up
+to lose
+  if breed = doodles 
+  [
+    if ycor <= -18.2 
+    [ 
+      game-over 
+      die
+      ]
+    ]
+end 
+
+;in the interface tab, the button dleft will ask BOB to move left
+to dleft
+  if breed = doodles 
+  [
+    set xcor xcor - 1
+    ]
+end 
+
+;in the interface tab, the button dright will ask BOB to move right
+to dright
+  if breed = doodles 
+  [
+    set xcor xcor + 1
+    ]
+end 
+
+;a helper fxn that codes for you-win to pop up if BOB wins
+to win
+  ask winturtles 
+  [
+    setxy 0 0
+    st
+    set shape "youwin"
+    set heading 0
+    set size 30
+    ]
+end
+
+;a helper fxn that codes for game-over to pop up is BOB loses
+to game-over
+  ask blkturtles 
+  [
+    setxy 0 0
+    st
+    set shape "gameover"
+    set heading 0
+    set size 30
+  ]
+  
+end
+
+;puts all the helper fxns into action
+to PLAY!
+  animate
+  lose
+  regenerate
+  platform-actions
+  bomb-actions
+  rocket-actions
+ fire-action
+  all_action
+ dshoot
+ coin-actions
+end 
+
+;this helper fxn is all the underlying procedures of the game
+to all_action
+  if breed = platforms          ; Makes platform sense if any doodles jumped on it. If yes, it will die after allowing the doodle to jump.
+  [
+    if any? doodles in-cone 1.4 180 
+    [
+      ask doodles 
+      [
+        set gravity 0 djump
+        ] 
+      ask rockets-on neighbors 
+      [die ]
+      ask coins-on neighbors 
+      [die] 
+      ask coins-here
+      [die]
+      ask bombs-on neighbors 
+      [die] 
+      ask blue_fire-on neighbors
+      [die]
+      die
+      ]
+    ]
+  if breed = doodles          ;Achieves scrolling effect by making every turtle except for the doodle shift down whenever the doodle jumps up.
+  [ 
+    if yvel = 1.35
+    [
+      ask platforms 
+      [fd -5 ]
+      ask rockets 
+      [fd -5] 
+      ask bombs
+      [fd -5]
+      ask coins
+      [fd -5]
+      ask blue_fire
+      [fd -5]
+      ]
+    ]
+  if breed = doodles          ;World scrolls down faster as the doodle approaches the top (we don't want BOB to reach the top since world doesn't wrap)
+  [
+    if ycor >= 8 
+    [ set ycor 6
+      bk 4 
+      ask platforms 
+      [fd -5] 
+      ask rockets 
+      [fd -5] 
+      ask bombs 
+      [fd -5 ]
+      ask coins
+      [fd -5 ] 
+     ask blue_fire
+      [fd -5]
+      djump 
+      ]
+    ]
+  ask platforms [
+  
+  if not any? doodles 
+  [ 
+    ask rockets 
+    [ht] 
+    ask bombs 
+    [ht]
+    ask coins
+    [ht]
+    ask blue_fire
+    [ht]
+      ht 
+    game-over
+    stop
+    ]
+  ]
+  if breed = doodles    ;When BOB does someone pass ycor 18 (kind of impossible) or achieves a score of 65, the user wins! A turtle will pop up containing the win message; game stops.
+  [
+    if ycor >= 18 or score >= 65
+    [
+      win 
+      ask platforms 
+      [ ht ] 
+      ask doodles 
+      [ ht] 
+      ask rockets 
+      [ht] 
+      ask bombs 
+      [ht ]
+      ask coins
+      [ht]
+      ask blue_fire
+      [ht]
+      stop
+    ]
+    stop
+      ]
+end 
+
+;[description please]
+to fire-action
+  ask blue_fire[
+  if any? doodles in-cone 1.8 180
+  [
+    ask doodles 
+    [ set shape "bob3"
+      set gravity 0
+      repeat 4 
+      [
+        setxy random-xcor (-14 + random 25) wait .5
+      ]
+      set shape character
+      djump
+    ] 
+    die 
+    ]
+  ]
+end 
+
+;codes for the windows to move, disappear when necessary, etc.
+to platform-actions
+  if any? doodles                              ;platforms will regenerate if its numbers go below 15 
+  [
+    if breed = doodles 
+  [
+    if ycor >= 12 or count platforms <= 15 
+    [
+      ask one-of platforms  
+      [
+        hatch-platforms 1 
+        [ 
+    setxy (-20 + random 60) (1 + random 21) 
+    set shape "window" 
+    set size 4
+    set heading 0 
+    ]
+      ]
+      ]
+  ]  
+  if breed = doodles                              ;rockets, coins, bombs, and flames will be hatched on top of platforms
+  [
+    if random 220 < 5 
+    [if any? platforms with [ycor < 10] 
+      [
+        ask one-of platforms with [ycor < 10]
+        [
+          hatch-rockets 1 
+        [
+          rocket-setup 
+          set ycor ycor + 1
+          ]
+        ]
+      ]
+    ]
+    if random 100 < 20
+    [
+      ask one-of platforms 
+      [
+        hatch-coins 1 
+        [
+          coin-setup
+          set ycor ycor + 1
+        ]
+      ]
+    ]  
+    if random 225 < 5 
+    [ if any? platforms with [ycor > 14] 
+      [
+      ask one-of platforms with [ycor > 14] 
+      [
+        hatch-bombs 1 
+        [
+          bomb-setup 
+          set ycor ycor + 1
+          ]
+        ]
+      ]
+    ]
+    if random 255 < 5
+    [ask one-of platforms
+      [hatch-blue_fire 1
+        [set ycor ycor + 1
+          set shape "fire"
+          set size 6
+        ]
+      ]
+    ]
+  ]
+   if count platforms > 20 
+   [
+     ask platforms with [ycor <= -16] 
+     [die ] 
+     ask rockets with [ycor <= -16] 
+     [die] 
+     ask bombs with [ycor <= -16] 
+     [die ]
+     ask coins with [ycor <= -16]
+     [die] 
+     ]
+  ]
+  
+   if breed = rockets                              ;Doesnt allow for more than one item to appear on a platform
+   [
+     if any? bombs-on neighbors or any? bombs-here or any? blue_fire-here 
+     [die ]
+     ]
+   if breed = coins
+   [
+   if any? rockets-here or any? bombs-here or any? blue_fire-here
+   [ die]
+   ]
+   if breed = blue_fire
+   [ if any? bombs-here
+     [die]
+   ]
+   if breed = rockets or breed = bombs  or breed = coins
+   [
+     if ycor < -17 
+     [ die ]
+     ]
+end
+
+;windows must regenerate as their number decreases
+to regenerate
+  if breed = platforms and ycor <= -19 
+  [
+    ask min-one-of platforms [ycor] 
+    [
+      hatch-platforms 1 
+      [
+        set shape "window" 
+        set size 4 
+        setxy (-20 + random 60) 
+        (1 + random 21) 
+        ]
+      ] 
+    die
+    ]
+end 
+
+;coins are created to help the player gain points
+to coin-actions
+  if breed = doodles
+  [
+    if any? coins in-cone 2 360
+    [
+      set score score + 1 
+      ask coins-here 
+      [
+        die
+        ]
+      ask coins-on neighbors
+      [
+        die
+      ]
+      ]
+    ]
+end  
+    
+;use the mouse to move BOB around in the world by changing his xcor
+to USE-MOUSE!
+  if mouse-inside? 
+  [
+  if breed = doodles
+  [
+    set xcor mouse-xcor
+    ]
+  ]
+  if not any? doodles [stop]
+end 
+
+;coins have a specific heading, shape, color, and size
+to coin-setup
+  set heading 0
+  set shape "coin"
+  set size 2
+  set color yellow
+end 
+
+;bombs have a specific heading, shape, color, and size
+to bomb-setup
+  set heading 0
+  set shape "bomb"
+  set size 3
+  set color red
+end
+
+;bombs must check if BOB is there and if he is, BOB must die!
+to bomb-actions
+  if breed = bombs 
+  [
+    if any? doodles in-cone 1.5 180 
+    [
+      ask doodles 
+      [
+      die
+        ]
+    die 
+    ]
+  ]
+end
+
+;rockets have a specific heading, shape, size, and color
+to rocket-setup
+  set heading 0
+  set shape "rocket"
+  set size 4
+  set color violet
+end
+
+; World scrolls down faster as doodle switches phases between its rocket shape and normal shape.
+to rocket-actions
+  if breed = rockets 
+  [
+    if any? doodles in-cone 1.5 300
+    [ 
+      set score (score + 5)
+      ask doodles 
+      [
+        set gravity 0 
+        repeat 3
+        
+          [
+            fd 4 wait .0001
+            ]
+        set shape "bob2"
+          if breed = doodles and shape = "bob2" 
+          [
+            wait .35
+            set shape character
+            ]
+          ]
+        
+      if breed = doodles  
+      [
+        if gravity != 0 
+        [
+          set shape character
+          ] 
+        ]
+      ask platforms 
+      [
+        repeat 10 
+        [
+          fd -4 wait .00001
+          ]
+        ]
+      ask bombs 
+      [
+        repeat 10
+        [
+          fd -4 wait .00001
+          ] 
+        ]
+      ask other rockets 
+      [
+        repeat 10
+        [
+          fd -4 wait .00001 
+          ]
+          ]
+      ask coins
+      [
+        repeat 10
+        [
+          fd -4 wait .00001
+        ]
+      ] 
+      die
+      ]
+    ]
+end
+
+;shoot the bombs to get rid of them
+to shoot
+  ask doodles 
+  [
+    if shoot_time >= 50
+      [
+        set shoot_time 50
+       ask patch-here 
+        [
+          sprout-bullets 1 
+          ]
+        set shoot_time 0
+        ]
+      ]
+end 
+
+;sets bullet shape as a LIGHTSABER. If it hits a bomb, an x will be shown before the bomb explodes.
+to dshoot
+    ask bullets 
+    [
+      set size 3.5 
+      set shape "saber"
+      set heading 0
+      fd .5
+      if pycor >= 18 or pycor < -18 or pxcor > 18 or pxcor < -18 
+      [
+        die
+        ]
+      ]
+    ask doodles 
+    [
+      set shoot_time shoot_time + 5
+      ]
+     ask bombs 
+     [
+       if any? bullets-on neighbors or any? bullets-here 
+       [ 
+         set score (score + 3)
+         ask bombs-on neighbors 
+         [ 
+           set shape "x" wait .5
+           die
+           ] 
+         ask bombs-here 
+         [
+           set shape "x" wait .2
+           die
+           ] 
+         ask bullets-on neighbors 
+         [
+           die
+           ]
+         ]
+       ]
+     wait .05
+end  
